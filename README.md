@@ -210,4 +210,4 @@ incident-guardian/
 
 This project is licensed under the MIT License — see the `LICENSE` file for details.
 
-*(Add a LICENSE file with the MIT or Apache 2.0 text at the repo root — required for the license to be detectable in the repo's "About" section on GitHub.)*
+* LICENSE file with the MIT  is added
