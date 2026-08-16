@@ -19,52 +19,123 @@ Every other AI memory framework treats application state and memory as two syste
 - **Backend:** Render
 - **Database:** CockroachDB Cloud
 - **Storage:** AWS S3
- Architecture
+  ## Incident Response & Memory Workflow
 
-Alert (webhook / manual / demo)
-        │
-        ▼
-Normalize (service, severity, description)                                                                                                                                           
-        │
-        ▼
-NVIDIA NIM Embedding ──► CockroachDB (incident + vector, one atomic write)                                                                                                          
-        │
-        ▼
-Hybrid Retrieval (vector similarity + service + severity + fix-effectiveness boost)                                                                                              
-        │
-        ▼
-NVIDIA NIM Reranker (sharpens candidates to genuinely relevant matches)                                                                                                              
-        │
-        ▼
-Groq (GPT-OSS-120B) reasoning ──► structured Root Cause / Confidence / Evidence / Fix                                                                                                  
-        │
-        ▼
-AWS S3 (postmortem export)                                                                                                                                                     
-        │
-        ▼
-Incident Lifecycle: open → investigating → fix_proposed → resolved → monitoring                                                                                                     
-```
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                         INCIDENT INGESTION                            │
+│              Webhook / Manual / Demo Incident                         │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                         NORMALIZATION                                │
+│              Service • Severity • Description                         │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                     NVIDIA NIM EMBEDDING                             │
+│                    Generate Incident Vector                           │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                       COCKROACHDB CLOUD                              │
+│                                                                      │
+│  Incident Record + Embedding → Single Atomic Write                  │
+│                                                                      │
+│  • Persistent Incident Memory                                       │
+│  • Distributed Vector Indexing                                      │
+│  • Incident State                                                    │
+│  • Fix History                                                       │
+│  • Trust Scores                                                      │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                       HYBRID RETRIEVAL                               │
+│                                                                      │
+│  Vector Similarity + Service Match + Severity Match                 │
+│  + Fix-Effectiveness Signal                                          │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                    NVIDIA NIM RERANKER                               │
+│                  Refine Relevant Candidates                           │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                  GROQ — GPT-OSS-120B                                 │
+│                       Agent Reasoning                                 │
+│                                                                      │
+│  Root Cause • Confidence • Evidence • Recommended Fix               │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                 ┌─────────────┴─────────────┐
+                 ▼                           ▼
+┌─────────────────────────────┐   ┌────────────────────────────────────┐
+│        AWS S3                │   │       INCIDENT LIFECYCLE           │
+│                             │   │                                    │
+│  Structured Postmortems     │   │ open → investigating               │
+│  Reports & Exports          │   │ → fix_proposed → resolved          │
+│                             │   │ → monitoring                        │
+└─────────────────────────────┘   └────────────────────────────────────┘
 
-### Self-Improving Memory Loop
 
-```
-Engineer confirms fix worked                                                                                                                                                       
-        │
-        ▼
-Trust score computed (base + repeat-confirmation bonus + time-held-clean bonus)                                                                                                           
-        │        (24-hour cooldown prevents repeat-click score farming)                                                                                                                                                                                                               
-        ▼
-Recurrence Watch silently re-checks resolved incidents against new incidents                                                                                                   
-        │        (time-decay weighting: a match minutes after resolution is                                                                                                 
-        │         strong evidence; a match months later is weak evidence)                                                                                                              
-        ▼
-   ┌────┴────┐
-   ▼         ▼
-Validated   Failed                                                                                                                                                       
-(7+ real    (real recurrence                                                                                                                 
-clean days) detected — trust                                                                                                                                                                            downgraded, incident
-            reopens automatically)
-```
+## Self-Improving Memory Loop
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                    ENGINEER CONFIRMS FIX                             │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                      TRUST SCORE UPDATE                              │
+│                                                                      │
+│  Base Score + Repeat Confirmation Bonus + Time-Held-Clean Bonus      │
+│                                                                      │
+│  24-hour cooldown prevents repeated confirmations from              │
+│  artificially inflating the trust score.                             │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                       RECURRENCE WATCH                               │
+│                                                                      │
+│  Continuously compares new incidents against resolved incidents.     │
+│                                                                      │
+│  Time-decay weighting:                                               │
+│  • Minutes after resolution → strong recurrence evidence             │
+│  • Months later → weaker recurrence evidence                         │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                         ┌─────┴─────┐
+                         ▼           ▼
+                  ┌────────────┐ ┌──────────────┐
+                  │ VALIDATED  │ │    FAILED    │
+                  │            │ │              │
+                  │ 7+ clean   │ │ Recurrence   │
+                  │ days       │ │ detected     │
+                  │            │ │              │
+                  │ Trust ↑    │ │ Trust ↓      │
+                  └─────┬──────┘ └──────┬───────┘
+                         │               │
+                         │               ▼
+                         │      ┌───────────────────┐
+                         │      │ Incident Reopens  │
+                         │      │ for Investigation │
+                         │      └───────────────────┘
+                         │
+                         └──────────────┐
+                                        ▼
+                         ┌────────────────────────┐
+                         │  UPDATED MEMORY IN     │
+                         │     COCKROACHDB        │
+                         └────────────────────────┘
+
 
 No fabricated before/after metrics anywhere in this loop — every verdict is grounded in real elapsed time and real recurrence detection against actual stored incidents.
 
