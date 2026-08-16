@@ -18,46 +18,45 @@ Every other AI memory framework treats application state and memory as two syste
 Alert (webhook / manual / demo)
         │
         ▼
-Normalize (service, severity, description)
+Normalize (service, severity, description)                                                                                                                                           
         │
         ▼
-NVIDIA NIM Embedding ──► CockroachDB (incident + vector, one atomic write)
+NVIDIA NIM Embedding ──► CockroachDB (incident + vector, one atomic write)                                                                                                          
         │
         ▼
-Hybrid Retrieval (vector similarity + service + severity + fix-effectiveness boost)
+Hybrid Retrieval (vector similarity + service + severity + fix-effectiveness boost)                                                                                              
         │
         ▼
-NVIDIA NIM Reranker (sharpens candidates to genuinely relevant matches)
+NVIDIA NIM Reranker (sharpens candidates to genuinely relevant matches)                                                                                                              
         │
         ▼
-Groq (GPT-OSS-120B) reasoning ──► structured Root Cause / Confidence / Evidence / Fix
+Groq (GPT-OSS-120B) reasoning ──► structured Root Cause / Confidence / Evidence / Fix                                                                                                  
         │
         ▼
-AWS S3 (postmortem export)
+AWS S3 (postmortem export)                                                                                                                                                     
         │
         ▼
-Incident Lifecycle: open → investigating → fix_proposed → resolved → monitoring
+Incident Lifecycle: open → investigating → fix_proposed → resolved → monitoring                                                                                                     
 ```
 
 ### Self-Improving Memory Loop
 
 ```
-Engineer confirms fix worked
+Engineer confirms fix worked                                                                                                                                                       
         │
         ▼
-Trust score computed (base + repeat-confirmation bonus + time-held-clean bonus)
-        │        (24-hour cooldown prevents repeat-click score farming)
+Trust score computed (base + repeat-confirmation bonus + time-held-clean bonus)                                                                                                           
+        │        (24-hour cooldown prevents repeat-click score farming)                                                                                                                                                                                                               
         ▼
-Recurrence Watch silently re-checks resolved incidents against new incidents
-        │        (time-decay weighting: a match minutes after resolution is
-        │         strong evidence; a match months later is weak evidence)
+Recurrence Watch silently re-checks resolved incidents against new incidents                                                                                                   
+        │        (time-decay weighting: a match minutes after resolution is                                                                                                 
+        │         strong evidence; a match months later is weak evidence)                                                                                                              
         ▼
    ┌────┴────┐
    ▼         ▼
-Validated   Failed
-(7+ real    (real recurrence
-clean days) detected — trust
-            downgraded, incident
+Validated   Failed                                                                                                                                                       
+(7+ real    (real recurrence                                                                                                                 
+clean days) detected — trust                                                                                                                                                                            downgraded, incident
             reopens automatically)
 ```
 
